@@ -265,4 +265,3 @@ const sumOfGearRatios = symbolPositions.reduce(
 
 console.log(sumOfGearRatios);
 
-export {}

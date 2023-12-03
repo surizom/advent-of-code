@@ -3,6 +3,7 @@
     "target": "ESNext",
     "isolatedModules": true,
     "lib": ["dom", "dom.iterable", "esnext"],
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "moduleDetection": "force"
   }
 }

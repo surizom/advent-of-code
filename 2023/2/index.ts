@@ -202,5 +202,3 @@ const sumPowers = powers.reduce((acc, current) => current + acc, 0);
 
 console.log(sumPowers);
 
-
-export {}
