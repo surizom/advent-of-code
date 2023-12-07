@@ -429,7 +429,6 @@ while (true) {
   locationTryN++;
 }
 
-
 // while (true) {
 //   const correspondingSeed = [locationTryN]
 //     .map(findCorrespondingReverseValue(testHumidityToLocationMap))
