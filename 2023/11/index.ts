@@ -1,4 +1,4 @@
-import { sum, uniqBy, uniqWith } from "lodash";
+import { sortBy, sum, uniq, uniqBy, uniqWith } from "lodash";
 
 const input = `..............................................#......#...............................................#..........................#...........
 .....#......................................................#.............................#.................................................
@@ -140,6 +140,16 @@ const input = `..............................................#......#...........
 ...............................................#..................#.........................................................................
 ...................................#....................................#.......#........#.........#..........................#.............
 ..........#.....#......................................................................................................#..............#.....`;
+const testInput = `...#......
+.......#..
+#.........
+..........
+......#...
+.#........
+.........#
+..........
+.......#..
+#...#.....`;
 
 const lines = input.split("\n").map((line) => [...line]);
 
@@ -153,8 +163,8 @@ const rows = new Array(lines[0].length)
   .fill(0)
   .map((_, index) => lines.map((line) => line[index]));
 
-const computeDistanceValueByRow = (emptyRowValue: number) =>
-  Object.fromEntries(
+const computeDistanceValueByRow = (emptyRowValue: number, rowIndex: number) => {
+  const map = Object.fromEntries(
     rows
       .map((row, index) => ({
         isEmpty: row.every((char) => char === "."),
@@ -162,6 +172,15 @@ const computeDistanceValueByRow = (emptyRowValue: number) =>
       }))
       .map(({ index, isEmpty }) => [index, isEmpty ? emptyRowValue : 1])
   );
+
+  const value = map[rowIndex];
+
+  if (!value) {
+    throw Error(`no value found for row ${rowIndex}`);
+  }
+
+  return value;
+};
 
 const computeDistanceValueByLine = (emptyLineValue: number) =>
   Object.fromEntries(
@@ -178,6 +197,8 @@ type Point = {
   rowIndex: number;
 };
 
+const format = (p: Point) => `y:${p.rowIndex},x:${p.lineIndex}`;
+
 type StellarObject = Point & { char: string };
 
 const modifiedManhattanDistance =
@@ -185,32 +206,25 @@ const modifiedManhattanDistance =
     const [smallestPointRowIndex, largestPointRowIndex] = [
       point1.rowIndex,
       point2.rowIndex,
-    ].sort();
+    ].toSorted((a, b) => a - b);
 
     const rowsBetweenThePoints = rows
       .map((row, index) => ({ row, index }))
-      .filter(
-        ({ index }) =>
-          index > smallestPointRowIndex && index <= largestPointRowIndex
-      );
-
+      .slice(smallestPointRowIndex + 1, largestPointRowIndex + 1);
     const horizontalDistance = sum(
-      rowsBetweenThePoints.map(
-        ({ index }) => computeDistanceValueByRow(emptyLineDistanceValue)[index]
+      rowsBetweenThePoints.map(({ index }) =>
+        computeDistanceValueByRow(emptyLineDistanceValue, index)
       )
     );
 
     const [smallestPointLineIndex, largestPointLineIndex] = [
       point1.lineIndex,
       point2.lineIndex,
-    ].sort();
+    ].toSorted((a, b) => a - b);
 
     const linesBetweenThePoints = lines
       .map((line, index) => ({ line, index }))
-      .filter(
-        ({ index }) =>
-          index > smallestPointLineIndex && index <= largestPointLineIndex
-      );
+      .slice(smallestPointLineIndex + 1, largestPointLineIndex + 1);
 
     const verticalDistance = sum(
       linesBetweenThePoints.map(
@@ -218,13 +232,31 @@ const modifiedManhattanDistance =
       )
     );
 
+    // console.log(
+    //   format(point1),
+    //   format(point2),
+    //   linesBetweenThePoints.map((line) => line.index),
+    //   rowsBetweenThePoints.map((line) => line.index),
+    //   linesBetweenThePoints.length + rowsBetweenThePoints.length,
+    //   horizontalDistance + verticalDistance
+    // );
+
     return verticalDistance + horizontalDistance;
   };
 
 const allGalaxies = stellarObjects.filter(({ char }) => char === "#");
 
 const isSamePoint = (point1: Point, point2) =>
-  point1.rowIndex === point2.rowIndex && point1.lineIndex === point1.lineIndex;
+  point1.rowIndex === point2.rowIndex && point1.lineIndex === point2.lineIndex;
+
+const coupleId = (point1: Point, point2: Point): string =>
+  sortBy(
+    [point1, point2],
+    (p) => p.lineIndex,
+    (p) => p.rowIndex
+  )
+    .map(format)
+    .join("-");
 
 const isSameCouple =
   (point1Couple1: Point, point2Couple1: Point) =>
@@ -235,17 +267,12 @@ const isSameCouple =
       isSamePoint(point1Couple1, point2Couple2));
 
 const allCombinations = allGalaxies
-  .map((galaxy) =>
-    allGalaxies
-      .filter((g) => !isSamePoint(g, galaxy))
-      .map((g) => [galaxy, g] as const)
-  )
-  .flat();
+  .map((galaxy) => allGalaxies.map((g) => [galaxy, g] as const))
+  .flat()
+  .filter(([g1, g2]) => !isSamePoint(g1, g2));
 
-const allUniqueCombinations = uniqWith(
-  allCombinations,
-  ([point1Couple1, point2Couple1], [point1Couple2, point2Couple2]) =>
-    isSameCouple(point1Couple1, point2Couple1)(point1Couple2, point2Couple2)
+const allUniqueCombinations = uniqBy(allCombinations, ([c1, c2]) =>
+  coupleId(c1, c2)
 );
 
 console.log(allGalaxies.length);
